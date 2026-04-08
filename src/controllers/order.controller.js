@@ -3,11 +3,35 @@ const Cart = require("../models/Cart");
 const Book = require("../models/Book");
 const Payment = require("../models/Payment");
 const asyncHandler = require("../middlewares/asyncHandler");
+const AppError = require("../utils/AppError");
 
 const normalizePaymentMethod = (method) => {
   const normalized = (method || "").toLowerCase().trim();
   if (normalized === "cash" || normalized === "cash_on_delivery") return "cod";
   return normalized;
+};
+
+const normalizeNullableText = (value) => {
+  if (value === undefined || value === null) return null;
+  const text = String(value).trim();
+  return text || null;
+};
+
+const buildShippingFromProfile = (user) => {
+  const shippingInfo = {
+    fullName: normalizeNullableText(user.name),
+    phone: normalizeNullableText(user.phone),
+    city: normalizeNullableText(user.city),
+    district: normalizeNullableText(user.district),
+    ward: normalizeNullableText(user.ward),
+    streetAddress: normalizeNullableText(user.streetAddress),
+  };
+
+  const composedAddress = [shippingInfo.streetAddress, shippingInfo.ward, shippingInfo.district, shippingInfo.city]
+    .filter(Boolean)
+    .join(", ");
+
+  return { shippingInfo, composedAddress };
 };
 
 const createOrder = asyncHandler(async (req, res) => {
@@ -21,17 +45,34 @@ const createOrder = asyncHandler(async (req, res) => {
 
   const orderItems = [];
   let totalPrice = 0;
+  const insufficientItems = [];
 
   for (const item of cart.items) {
     const book = await Book.findById(item.book._id);
     if (!book) {
       res.status(404);
-      throw new Error(`Book not found: ${item.book._id}`);
+      throw new AppError(`Book not found: ${item.book._id}`, 404);
     }
     if (book.stock < item.quantity) {
-      res.status(400);
-      throw new Error(`Insufficient stock for book: ${book.title}`);
+      insufficientItems.push({
+        bookId: String(book._id),
+        title: book.title,
+        requested: item.quantity,
+        inStock: book.stock,
+      });
     }
+  }
+
+  if (insufficientItems.length > 0) {
+    throw new AppError(
+      "Không đủ hàng trong kho so với số lượng trong giỏ. Vui lòng giảm số lượng hoặc xóa sản phẩm.",
+      400,
+      { insufficientItems }
+    );
+  }
+
+  for (const item of cart.items) {
+    const book = await Book.findById(item.book._id);
 
     book.stock -= item.quantity;
     await book.save();
@@ -44,11 +85,23 @@ const createOrder = asyncHandler(async (req, res) => {
     totalPrice += item.quantity * book.price;
   }
 
+  const providedAddress = normalizeNullableText(shippingAddress);
+  const { shippingInfo, composedAddress } = buildShippingFromProfile(req.user);
+  const finalShippingAddress = providedAddress || composedAddress;
+
+  if (!finalShippingAddress || finalShippingAddress.length < 5) {
+    throw new AppError(
+      "Thiếu địa chỉ giao hàng. Vui lòng cập nhật thông tin cá nhân hoặc nhập shippingAddress khi thanh toán.",
+      400
+    );
+  }
+
   const order = await Order.create({
     user: req.user._id,
     orderItems,
     totalPrice,
-    shippingAddress,
+    shippingAddress: finalShippingAddress,
+    shippingInfo,
     paymentMethod: normalizePaymentMethod(paymentMethod),
   });
 

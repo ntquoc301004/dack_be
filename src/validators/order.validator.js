@@ -1,7 +1,7 @@
 const Joi = require("joi");
 
 const createOrderSchema = Joi.object({
-  shippingAddress: Joi.string().min(5).required(),
+  shippingAddress: Joi.string().allow("", null).min(5).optional(),
   paymentMethod: Joi.string()
     .valid("cod", "bank_transfer", "momo", "vnpay", "paypal", "stripe", "COD")
     .required(),

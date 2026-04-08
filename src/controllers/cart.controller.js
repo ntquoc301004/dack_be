@@ -1,6 +1,7 @@
 const Cart = require("../models/Cart");
 const Book = require("../models/Book");
 const asyncHandler = require("../middlewares/asyncHandler");
+const AppError = require("../utils/AppError");
 
 const getOrCreateCart = async (userId) => {
   let cart = await Cart.findOne({ user: userId });
@@ -28,8 +29,26 @@ const addToCart = asyncHandler(async (req, res) => {
   const cart = await getOrCreateCart(req.user._id);
   const index = cart.items.findIndex((item) => item.book.toString() === bookId);
 
+  let newQuantity = quantity;
   if (index > -1) {
-    cart.items[index].quantity += quantity;
+    newQuantity = cart.items[index].quantity + quantity;
+  }
+
+  if (newQuantity > book.stock) {
+    throw new AppError(
+      "Số lượng trong giỏ vượt quá tồn kho.",
+      400,
+      {
+        bookId: String(book._id),
+        title: book.title,
+        requested: newQuantity,
+        inStock: book.stock,
+      }
+    );
+  }
+
+  if (index > -1) {
+    cart.items[index].quantity = newQuantity;
   } else {
     cart.items.push({ book: bookId, quantity });
   }
@@ -47,6 +66,24 @@ const updateCartItem = asyncHandler(async (req, res) => {
   if (index === -1) {
     res.status(404);
     throw new Error("Item not found in cart");
+  }
+
+  const book = await Book.findById(bookId);
+  if (!book) {
+    res.status(404);
+    throw new Error("Book not found");
+  }
+  if (quantity > book.stock) {
+    throw new AppError(
+      "Số lượng vượt quá tồn kho.",
+      400,
+      {
+        bookId: String(book._id),
+        title: book.title,
+        requested: quantity,
+        inStock: book.stock,
+      }
+    );
   }
 
   cart.items[index].quantity = quantity;

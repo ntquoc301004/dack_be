@@ -21,6 +21,18 @@ const orderItemSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const shippingInfoSchema = new mongoose.Schema(
+  {
+    fullName: { type: String, default: null, trim: true },
+    phone: { type: String, default: null, trim: true },
+    city: { type: String, default: null, trim: true },
+    district: { type: String, default: null, trim: true },
+    ward: { type: String, default: null, trim: true },
+    streetAddress: { type: String, default: null, trim: true },
+  },
+  { _id: false }
+);
+
 const orderSchema = new mongoose.Schema(
   {
     user: {
@@ -41,6 +53,10 @@ const orderSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+    },
+    shippingInfo: {
+      type: shippingInfoSchema,
+      default: () => ({}),
     },
     paymentMethod: {
       type: String,

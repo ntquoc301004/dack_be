@@ -1,6 +1,6 @@
 # Book Store Backend API
 
-Backend hoan chinh cho website ban sach su dung Node.js, Express, MongoDB, JWT.
+Backend cho website ban sach (Node.js + Express + MongoDB + JWT + Socket.IO).
 
 ## 1) Cong nghe
 
@@ -9,139 +9,45 @@ Backend hoan chinh cho website ban sach su dung Node.js, Express, MongoDB, JWT.
 - MongoDB + Mongoose
 - JWT Authentication
 - bcryptjs
-- dotenv, cors
-- Joi validation
+- Joi Validation
+- Socket.IO (chat realtime)
+- Multer (upload avatar)
+- Nodemailer (forgot/reset password qua email)
 
-## 2) Cau truc thu muc
-
-```
-.
-|-- src
-|   |-- config
-|   |   `-- db.js
-|   |-- controllers
-|   |-- middlewares
-|   |-- models
-|   |-- routes
-|   |-- services
-|   `-- validators
-|-- app.js
-|-- server.js
-|-- package.json
-`-- .env.example
-```
-
-## 3) Cai dat va chay
-
-### Buoc 1: Cai dependencies
+## 2) Cai dat va chay
 
 ```bash
 npm install
-```
-
-### Buoc 2: Tao file env
-
-```bash
 cp .env.example .env
-```
-
-Neu dung Windows PowerShell:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-### Buoc 3: Chay server
-
-```bash
 npm run dev
 ```
 
-Hoac production:
+PowerShell:
 
-```bash
-npm start
+```powershell
+Copy-Item .env.example .env
+npm run dev
 ```
 
-## 4) API Base URL
+Base URL: `http://localhost:5000/api/v1`
 
-Tat ca API deu co version:
+JWT header:
 
-`/api/v1`
+```http
+Authorization: Bearer <your_jwt_token>
+```
 
-Vi du:
+## 3) Danh sach API DAY DU
 
-- `/api/v1/auth/login`
-- `/api/v1/books`
-- `/api/v1/orders`
+### 3.1 Auth
 
-## 5) Danh sach API
+- `POST /auth/register`
+- `POST /auth/login`
+- `GET /auth/profile`
+- `POST /auth/forgot-password`
+- `POST /auth/reset-password`
 
-### Auth
-
-- `POST /api/v1/auth/register`
-- `POST /api/v1/auth/login`
-- `GET /api/v1/auth/profile`
-
-### User (admin)
-
-- `GET /api/v1/users`
-- `DELETE /api/v1/users/:id`
-
-### Category
-
-- `GET /api/v1/categories`
-- `POST /api/v1/categories`
-- `PUT /api/v1/categories/:id`
-- `DELETE /api/v1/categories/:id`
-
-### Book
-
-- `GET /api/v1/books`
-- `GET /api/v1/books/:id`
-- `POST /api/v1/books`
-- `PUT /api/v1/books/:id`
-- `DELETE /api/v1/books/:id`
-- `GET /api/v1/books?keyword=&page=&limit=`
-
-### Review
-
-- `POST /api/v1/reviews`
-- `GET /api/v1/books/:id/reviews`
-
-### Cart
-
-- `GET /api/v1/cart`
-- `POST /api/v1/cart/add`
-- `PUT /api/v1/cart/update`
-- `DELETE /api/v1/cart/remove`
-
-### Order
-
-- `POST /api/v1/orders`
-- `GET /api/v1/orders/my`
-- `GET /api/v1/orders`
-- `PUT /api/v1/orders/:id/status`
-
-### Admin
-
-- `GET /api/v1/admin/dashboard`
-- `GET /api/v1/admin/orders?page=&limit=&status=`
-- `PUT /api/v1/admin/users/:id/role`
-- `GET /api/v1/admin/reviews?page=&limit=`
-- `DELETE /api/v1/admin/reviews/:id`
-- `GET /api/v1/admin/authors`
-- `POST /api/v1/admin/authors`
-- `PUT /api/v1/admin/authors/:id`
-- `DELETE /api/v1/admin/authors/:id`
-- `GET /api/v1/admin/payments?page=&limit=&status=&method=`
-- `PUT /api/v1/admin/payments/:id/status`
-
-## 6) Vi du JSON request
-
-### Register
-
-`POST /api/v1/auth/register`
+Register:
 
 ```json
 {
@@ -151,9 +57,7 @@ Vi du:
 }
 ```
 
-### Login
-
-`POST /api/v1/auth/login`
+Login:
 
 ```json
 {
@@ -162,9 +66,72 @@ Vi du:
 }
 ```
 
-### Create Category (admin)
+Forgot password:
 
-`POST /api/v1/categories`
+```json
+{
+  "email": "a@example.com"
+}
+```
+
+Reset password:
+
+```json
+{
+  "token": "reset_token_tu_email",
+  "password": "newpassword123"
+}
+```
+
+### 3.2 User Profile (can JWT)
+
+- `GET /users/me`
+- `PATCH /users/me` (hoac `PUT /users/me`)
+- `PUT /users/me/password`
+- `PUT /users/me/avatar` (multipart/form-data)
+
+Update profile:
+
+```json
+{
+  "name": "Nguyen Van B",
+  "email": "b@example.com",
+  "phone": "0909123456",
+  "city": "Ho Chi Minh",
+  "district": "Quan 1",
+  "ward": "Ben Nghe",
+  "streetAddress": "12 Le Loi"
+}
+```
+
+Change password:
+
+```json
+{
+  "currentPassword": "123456",
+  "newPassword": "12345678"
+}
+```
+
+Upload avatar:
+- Method: `PUT /users/me/avatar`
+- Body: `form-data`
+- Key file: `avatar`
+- Max size: 2MB
+
+### 3.3 User Admin
+
+- `GET /users`
+- `DELETE /users/:id`
+
+### 3.4 Category
+
+- `GET /categories`
+- `POST /categories` (admin)
+- `PUT /categories/:id` (admin)
+- `DELETE /categories/:id` (admin)
+
+Create category:
 
 ```json
 {
@@ -173,15 +140,23 @@ Vi du:
 }
 ```
 
-### Create Book (admin)
+### 3.5 Book
 
-`POST /api/v1/books`
+- `GET /books`
+- `GET /books/:id`
+- `POST /books` (admin)
+- `PUT /books/:id` (admin)
+- `DELETE /books/:id` (admin)
+- `GET /books?keyword=&page=&limit=`
+- `GET /books/:id/reviews`
+
+Create/Update book:
 
 ```json
 {
   "title": "The Pragmatic Programmer",
   "author": "Andrew Hunt",
-  "price": 19.99,
+  "price": 199000,
   "stock": 30,
   "description": "A practical software development guide",
   "image": "https://example.com/book.jpg",
@@ -189,9 +164,12 @@ Vi du:
 }
 ```
 
-### Add Review
+### 3.6 Review
 
-`POST /api/v1/reviews`
+- `POST /reviews` (can JWT)
+- `GET /books/:id/reviews`
+
+Create review:
 
 ```json
 {
@@ -201,9 +179,14 @@ Vi du:
 }
 ```
 
-### Add To Cart
+### 3.7 Cart
 
-`POST /api/v1/cart/add`
+- `GET /cart`
+- `POST /cart/add`
+- `PUT /cart/update`
+- `DELETE /cart/remove`
+
+Add to cart:
 
 ```json
 {
@@ -212,20 +195,40 @@ Vi du:
 }
 ```
 
-### Create Order
+Update cart item:
 
-`POST /api/v1/orders`
+```json
+{
+  "bookId": "66f123456789012345678901",
+  "quantity": 1
+}
+```
+
+Remove cart item:
+
+```json
+{
+  "bookId": "66f123456789012345678901"
+}
+```
+
+### 3.8 Order
+
+- `POST /orders`
+- `GET /orders/my`
+- `GET /orders` (admin)
+- `PUT /orders/:id/status` (admin)
+
+Create order:
 
 ```json
 {
   "shippingAddress": "123 Nguyen Trai, Quan 1, TP.HCM",
-  "paymentMethod": "COD"
+  "paymentMethod": "cod"
 }
 ```
 
-### Update Order Status (admin)
-
-`PUT /api/v1/orders/:id/status`
+Update status:
 
 ```json
 {
@@ -233,65 +236,174 @@ Vi du:
 }
 ```
 
-## 7) Ghi chu bao mat va production
+### 3.9 Payment
 
-- Password duoc hash bang bcryptjs.
-- API xac thuc bang JWT Bearer token.
-- Route admin duoc bao ve boi `authMiddleware` + `adminMiddleware`.
-- Su dung Joi de validate request body.
-- Da co `errorHandler` va `notFoundHandler`.
+- `GET /payments/my`
+- `GET /payments/order/:orderId`
+- `POST /payments/webhook`
 
-## 8) Header can gui cho route can login
+Webhook payload:
 
-```http
-Authorization: Bearer <your_jwt_token>
+```json
+{
+  "orderId": "66f123456789012345678901",
+  "status": "paid",
+  "transactionId": "TXN_001",
+  "metadata": {
+    "gateway": "vnpay"
+  }
+}
 ```
 
-## 9) AI Agent sinh backend
+### 3.10 Admin Module
 
-Da bo sung module `agent/` ho tro sinh code backend theo yeu cau tu nhien:
+- `GET /admin/dashboard`
+- `GET /admin/orders?page=&limit=&status=`
+- `PUT /admin/users/:id/role`
+- `GET /admin/reviews?page=&limit=`
+- `DELETE /admin/reviews/:id`
+- `GET /admin/authors`
+- `POST /admin/authors`
+- `PUT /admin/authors/:id`
+- `DELETE /admin/authors/:id`
+- `GET /admin/payments?page=&limit=&status=&method=`
+- `PUT /admin/payments/:id/status`
 
-```
-agent
-|-- config
-|   |-- default.js
-|   `-- index.js
-|-- core
-|   `-- AgentEngine.js
-|-- rules
-|   |-- codingRule.js
-|   |-- apiRule.js
-|   |-- securityRule.js
-|   |-- namingRule.js
-|   `-- index.js
-|-- skills
-|   |-- generateModel.js
-|   |-- generateAPI.js
-|   |-- generateController.js
-|   |-- authHandler.js
-|   |-- databaseConnector.js
-|   |-- validationHandler.js
-|   `-- index.js
-|-- examples
-|   `-- usage.js
-`-- index.js
+Update user role:
+
+```json
+{
+  "role": "admin"
+}
 ```
 
-### Rules duoc ap dung toan he thong
+Update payment status:
 
-- `codingRule`: code controller/api phai co `try-catch`
-- `apiRule`: API phai dung prefix `/api/v1`
-- `securityRule`: password phai co `minlength >= 6`
-- `namingRule`: Model name phai la PascalCase
-
-### Chay demo agent
-
-```bash
-npm run agent:demo
+```json
+{
+  "status": "paid",
+  "transactionId": "TXN_002"
+}
 ```
 
-### Vi du su dung
+### 3.11 Chat (REST + Socket)
 
-- Input: `Tao model Book` -> goi `generateModel` + `namingRule`
-- Input: `Tao API Book` -> goi `generateAPI` + `apiRule`
-- Input: `tao backend ban sach day du` -> sinh model + controller + api
+REST:
+- `POST /chat/send` (alias: `/chats/send`)
+- `POST /chat/delete` (alias: `/chats/delete`)
+- `GET /chats/my`
+- `GET /chats/admin/conversations` (admin)
+- `GET /chats/admin/conversations/:userId` (admin)
+
+Send chat user -> admin:
+
+```json
+{
+  "message": "Xin chao admin"
+}
+```
+
+Send chat admin -> user:
+
+```json
+{
+  "toUserId": "66f123456789012345678901",
+  "message": "Chao ban"
+}
+```
+
+Delete conversation (admin):
+
+```json
+{
+  "toUserId": "66f123456789012345678901"
+}
+```
+
+Delete conversation (user):
+
+```json
+{}
+```
+
+Socket:
+- Endpoint: `ws://localhost:5000` (cung port backend)
+- Connect auth:
+  - `auth: { token: "Bearer <jwt>" }` hoac raw token
+- Emit:
+  - `chat:send`
+  - `chat:markRead`
+- Receive:
+  - `chat:message`
+
+## 4) Demo test toan bo chuc nang
+
+> Goi theo thu tu de test end-to-end tren Postman/Frontend.
+
+1. Register user (`/auth/register`)
+2. Login user (`/auth/login`) -> luu token user
+3. Login admin (`/auth/login`) -> luu token admin
+4. Admin tao category (`/categories`)
+5. Admin tao book (`/books`)
+6. User xem books (`/books`)
+7. User add cart (`/cart/add`)
+8. User xem cart (`/cart`)
+9. User tao order (`/orders`)
+10. Admin xem orders (`/orders`)
+11. Admin update order status (`/orders/:id/status`)
+12. User update profile (`/users/me`)
+13. User upload avatar (`/users/me/avatar`)
+14. User doi mat khau (`/users/me/password`)
+15. User forgot password (`/auth/forgot-password`) -> lay token tu mail
+16. User reset password (`/auth/reset-password`)
+17. User tao review (`/reviews`)
+18. Admin dashboard (`/admin/dashboard`)
+19. Chat:
+    - User send (`/chat/send`)
+    - Admin xem conversations (`/chats/admin/conversations`)
+    - Admin reply (`/chat/send` voi `toUserId`)
+    - Admin/User delete conversation (`/chat/delete`)
+
+## 5) Response schema quan trong
+
+Chat module dung schema:
+
+Success:
+
+```json
+{
+  "success": true,
+  "data": {}
+}
+```
+
+Error:
+
+```json
+{
+  "success": false,
+  "message": "..."
+}
+```
+
+Module khac co the tra schema cu (`message`, `errors`, `stack` trong dev).
+
+## 6) Bien moi truong quan trong
+
+Xem mau day du trong `.env.example`.
+Can luu y nhat:
+
+- `PORT`, `MONGO_URI`, `JWT_SECRET`
+- SMTP reset password:
+  - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`
+- CORS:
+  - `CORS_ORIGINS`
+  - `SOCKET_CORS_ORIGIN`
+- Socket timeout:
+  - `SOCKET_PING_INTERVAL_MS`
+  - `SOCKET_PING_TIMEOUT_MS`
+  - `SOCKET_CONNECT_TIMEOUT_MS`
+- Debug logs:
+  - `LOG_CHAT_REQUESTS`
+  - `LOG_SOCKET_EVENTS`
+  - `LOG_ABORTED_CHAT_REQUESTS`

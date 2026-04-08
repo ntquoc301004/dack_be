@@ -7,7 +7,7 @@ const authMiddleware = asyncHandler(async (req, res, next) => {
   const token = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
 
   if (!token) {
-    return res.status(401).json({ message: "Unauthorized: token missing" });
+    return res.status(401).json({ success: false, message: "Unauthorized: token missing" });
   }
 
   try {
@@ -15,13 +15,13 @@ const authMiddleware = asyncHandler(async (req, res, next) => {
     const user = await User.findById(decoded.id).select("-password");
 
     if (!user) {
-      return res.status(401).json({ message: "Unauthorized: user not found" });
+      return res.status(401).json({ success: false, message: "Unauthorized: user not found" });
     }
 
     req.user = user;
     return next();
   } catch (error) {
-    return res.status(401).json({ message: "Unauthorized: invalid token" });
+    return res.status(401).json({ success: false, message: "Unauthorized: invalid token" });
   }
 });
 
